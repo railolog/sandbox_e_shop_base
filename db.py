@@ -3,6 +3,7 @@ from test import spph
 from time import *
 import datetime
 
+
 class DB:
     def __init__(self, type):
         d = {'users': 'users.db', 'goods': 'goods.db', 'orders': 'orders.db'}
@@ -84,7 +85,8 @@ class GoodsModel:
         cursor.execute(
                         '''INSERT INTO goods
                            (type, name, description, price, date)
-                           VALUES (?,?,?,?,?)''', (type, name, description, price, time())
+                           VALUES (?,?,?,?,?)''', (type, name, description,
+                                                   price, time())
                       )
         cursor.close()
         self.connection.commit()
@@ -159,7 +161,8 @@ class OrdersModel:
 
     def get_by_user(self, user_id):
         cursor = self.connection.cursor()
-        cursor.execute("SELECT * FROM orders WHERE user_id = ?", (int(user_id),))
+        cursor.execute("SELECT * FROM orders WHERE user_id = ?",
+                       (int(user_id),))
         orders = cursor.fetchall()
         return orders
 

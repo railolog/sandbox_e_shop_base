@@ -50,8 +50,8 @@ def main_page():
             return redirect('/search/{}'.format(phrase))
     with open('data/categories.json', "rt", encoding="utf8") as f:
         categories = json.loads(f.read())
-    return render_template('index.html', title='Главная', categories=categories,
-                            cart_items=cart_len())
+    return render_template('index.html', title='Главная',
+                           categories=categories, cart_items=cart_len())
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -74,7 +74,8 @@ def login():
                 f.write(json.dumps(all_carts))
             return redirect("/index")
         else:
-            return render_template('login.html', title='Авторизация', form=form,
+            return render_template('login.html', title='Авторизация',
+                                   form=form,
                                    message='Неверный логин или пароль')
     return render_template('login.html', title='Авторизация', form=form)
 
@@ -82,12 +83,13 @@ def login():
 @app.route('/registration', methods=['GET', 'POST'])
 def registration():
     form = RegistrationForm()
+    message = 'Длина пароля должна быть не меньше 7 символов'
     if form.validate_on_submit():
         user_name = form.username.data
         password = form.password.data
         if len(password) < 7:
             return render_template('registration.html', form=form,
-                                   message='Длина пароля должна быть не меньше 7 символов')
+                                   message=message)
         um.insert(user_name, password)
         return redirect('/')
     return render_template('registration.html', title='Регистрация', form=form)
@@ -95,9 +97,9 @@ def registration():
 
 @app.route('/logout')
 def logout():
-    session.pop('username',0)
-    session.pop('user_id',0)
-    session.pop('is_admin',0)
+    session.pop('username', 0)
+    session.pop('user_id', 0)
+    session.pop('is_admin', 0)
     return redirect('/index')
 
 
@@ -110,7 +112,7 @@ def admin_panel():
     if not session['is_admin']:
         return redirect('/')
     return render_template('admin_panel.html', title='Админ-панель',
-                            cart_items=cart_len())
+                           cart_items=cart_len())
 
 
 @app.route('/all_users', methods=['GET', 'POST'])
@@ -127,7 +129,8 @@ def all_users():
     um.init_table()
     all_users = um.get_all()
     return render_template('all_users.html', title='Все пользователи',
-                            users=enumerate(all_users, 1), cart_items=cart_len())
+                           users=enumerate(all_users, 1),
+                           cart_items=cart_len())
 
 
 @app.route('/add_photo/<id>', methods=['GET', 'POST'])
@@ -153,8 +156,8 @@ def add_photo(id):
             f.write(json.dumps(srcs))
         form.photo_upload.data.save('static/img/{}'.format(myFile))
         return redirect('/add_photo/{}'.format(id))
-    return render_template('add_photo.html', form=form, title='Добавление фото',
-                            cart_items=cart_len())
+    return render_template('add_photo.html', form=form,
+                           title='Добавление фото', cart_items=cart_len())
 
 
 @app.route('/add_goods', methods=['GET', 'POST'])
@@ -174,7 +177,10 @@ def add_goods():
         type = form.type.data
         name = form.name.data
         description = form.description.data
-        price = int(form.price.data)
+        try:
+            price = int(form.price.data)
+        except:
+            return('Цена должна быть введена в рублях(целым числом)')
         myFile = secure_filename(form.file_upload.data.filename)
         gm.insert(type, name, description, price)
         latest = max(gm.get_all(), key=lambda x: x[5])
@@ -189,7 +195,7 @@ def add_goods():
         form.file_upload.data.save('static/img/{}'.format(myFile))
         return redirect('/')
     return render_template('add_goods.html', title='Добавление товара',
-                            form=form, cart_items=cart_len())
+                           form=form, cart_items=cart_len())
 
 
 @app.route('/items/<type>', methods=['GET', 'POST'])
@@ -253,7 +259,9 @@ def item_page(id):
         one_src = srcs[1]
         srcs = srcs[2:]
     return render_template('item.html', title=goods[2], item=goods, srcs=srcs,
-                           length=len(srcs), one_src=one_src, cart_items=cart_len())
+                           length=len(srcs),
+                           one_src=one_src,
+                           cart_items=cart_len())
 
 
 @app.route('/add_to_cart/<int:user_id>/<int:goods_id>')
@@ -305,7 +313,7 @@ def user_cart(id):
     for good in all_goods:
         sum += good[0][4] * good[1]
     return render_template('cart.html', goods=all_goods, title='Корзина',
-                            sum=sum, cart_items=cart_len())
+                           sum=sum, cart_items=cart_len())
 
 
 @app.route('/delete_from_cart/<int:good_id>')
@@ -357,11 +365,11 @@ def orders():
     gm.init_table()
     names = []
     orders = sorted(om.get_by_user(session['user_id']), key=lambda x: x[7],
-                                   reverse=True)
+                    reverse=True)
     for order in orders:
         names.append(gm.get(order[1]))
     return render_template('orders.html', title='Заказы',
-                            orders=zip(orders, names), cart_items=cart_len())
+                           orders=zip(orders, names), cart_items=cart_len())
 
 
 @app.route('/order_control', methods=['GET', 'POST'])
@@ -380,11 +388,12 @@ def order_control():
     gm.init_table()
     names = []
     orders = sorted(om.get_all(), key=lambda x: x[7],
-                                   reverse=True)
+                    reverse=True)
     for order in orders:
         names.append(gm.get(order[1]))
     return render_template('order_control.html', title='Изменить статус',
                            orders=zip(orders, names), cart_items=cart_len())
+
 
 @app.route('/edit_order/<int:order_id>', methods=['GET', 'POST'])
 def edit_order(order_id):
@@ -410,7 +419,20 @@ def edit_order(order_id):
         'Получен'
               )
     return render_template('edit_order.html', title='Изменить статус',
-                            order=order, options=options, cart_items=cart_len())
+                           order=order, options=options,
+                           cart_items=cart_len())
+
+
+@app.route('/delete_order/<int:order_id>')
+def delete_order(order_id):
+    if "username" not in session:
+        return redirect('/login')
+    if not session['is_admin']:
+        return redirect('/')
+    om = OrdersModel(orders_db.get_connection())
+    om.init_table()
+    om.delete(order_id)
+    return redirect('/')
 
 
 if __name__ == '__main__':
